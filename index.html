@@ -21,6 +21,9 @@
       --accent: #27ae60;
       --warn: #e74c3c;
     }
+
+    * { box-sizing: border-box; }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg);
@@ -31,7 +34,9 @@
       padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
       -webkit-tap-highlight-color: transparent;
     }
+
     h1, h2, h3 { margin: 0 0 10px 0; }
+
     .card {
       background: var(--card);
       border-radius: 12px;
@@ -39,10 +44,12 @@
       margin-bottom: 15px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
+
     .flex-between { display: flex; justify-content: space-between; align-items: center; }
     .stat-box { text-align: center; flex: 1; }
     .stat-val { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
     .stat-lbl { font-size: 0.8rem; color: #7f8c8d; }
+
     input, select, button, textarea {
       width: 100%;
       padding: 12px;
@@ -52,6 +59,7 @@
       box-sizing: border-box;
       font-size: 1rem;
     }
+
     button {
       background: var(--primary);
       color: white;
@@ -60,21 +68,26 @@
       cursor: pointer;
       border-radius: 8px;
     }
+
     .log-item {
       padding: 10px 0;
       border-bottom: 1px solid #eee;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
     }
+
     .badge {
       padding: 4px 8px;
       border-radius: 6px;
       font-size: 0.85rem;
       font-weight: bold;
     }
+
     .badge-food { background: #ebf5fb; color: var(--primary); }
     .badge-sport { background: #eafaf1; color: var(--accent); }
+
     .btn-del {
       background: none;
       border: none;
@@ -84,6 +97,7 @@
       width: auto;
       padding: 0 0 0 10px;
     }
+
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -94,6 +108,7 @@
       border-top: 1px solid #ddd;
       padding-bottom: env(safe-area-inset-bottom);
     }
+
     .nav-btn {
       flex: 1;
       padding: 12px;
@@ -102,17 +117,63 @@
       color: #7f8c8d;
       border-radius: 0;
       font-size: 0.9rem;
+      border: none;
+      font-weight: bold;
     }
+
     .nav-btn.active { color: var(--primary); font-weight: bold; }
+
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+
     .sub-text { font-size: 0.85rem; color: #7f8c8d; }
+
     .history-card {
       background: #f8f9fa;
       border: 1px solid #e9ecef;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
+    }
+
+    .scan-btn {
+      background: #0d6efd;
+      margin-top: 8px;
+    }
+
+    #scanner-container {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #scanner-container.visible {
+      display: flex;
+    }
+
+    #scanner-box {
+      position: relative;
+      width: min(90vw, 500px);
+      text-align: center;
+    }
+
+    #scanner-video {
+      width: 100%;
+      max-height: 60vh;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      object-fit: cover;
+      background: black;
+    }
+
+    .scanner-close {
+      margin-top: 16px;
+      background: #dc3545;
     }
   </style>
 </head>
@@ -141,7 +202,7 @@
       <input type="text" id="food-search" list="food-db" placeholder="Taper le nom de l'aliment..." onchange="onFoodSelect()">
       <datalist id="food-db"></datalist>
       <div id="food-portion-info" class="sub-text"></div>
-      
+
       <div style="display:flex; gap:8px;">
         <div style="flex:1;">
           <label style="font-size:0.8rem; color:#666;">Quantité :</label>
@@ -152,19 +213,20 @@
           <input type="number" id="food-pts" placeholder="Points (ex: 3)">
         </div>
       </div>
-      
+
       <button onclick="addEntry('food')">Ajouter au journal</button>
+
+      <!-- SCAN CODE BARRE -->
+      <button id="btn-scan" class="scan-btn" type="button">📷 Scanner un code-barres</button>
     </div>
 
     <!-- Calculateur Macro / Formule WW -->
     <div class="card">
       <h3>📊 Calculateur & Sauvegarde d'aliment</h3>
       <input type="text" id="calc-name" placeholder="Nom de ton aliment (ex: Gâteau maison)">
-      
+
       <label style="font-size:0.8rem; color:#666;">Catégorie de l'aliment :</label>
-      <select id="calc-cat">
-        <!-- Rempli dynamiquement -->
-      </select>
+      <select id="calc-cat"></select>
 
       <div style="display:flex; gap:8px;">
         <input type="number" id="calc-cal" placeholder="Calories (100g)">
@@ -180,9 +242,8 @@
       </div>
     </div>
 
-    <!-- AJOUT ICI : Zone d'affichage du résultat du calcul -->
-      <div id="calc-result-display" style="margin-top: 10px; font-weight: bold; color: #8e44ad; text-align: center; font-size: 1.1rem;"></div>
-    </div>
+    <div id="calc-result-display" style="margin-top: 10px; font-weight: bold; color: #8e44ad; text-align: center; font-size: 1.1rem;"></div>
+
     <!-- Saisie Activité -->
     <div class="card">
       <h3>🏃 Rechercher ou ajouter une activité</h3>
@@ -219,8 +280,17 @@
 
   <!-- BARRE DE NAVIGATION -->
   <div class="nav-bar">
-    <button class="nav-btn active" onclick="switchTab('today')">Aujourd'hui</button>
-    <button class="nav-btn" onclick="switchTab('history')">Historique</button>
+    <button class="nav-btn active" onclick="switchTab('today', event)">Aujourd'hui</button>
+    <button class="nav-btn" onclick="switchTab('history', event)">Historique</button>
+  </div>
+
+  <!-- MODAL SCANNER -->
+  <div id="scanner-container">
+    <div id="scanner-box">
+      <h3 style="color: white; margin-bottom: 15px;">Placez le code-barres dans le cadre</h3>
+      <video id="scanner-video" playsinline></video>
+      <button id="btn-close-scanner" type="button" class="scanner-close">❌ Annuler</button>
+    </div>
   </div>
 
 <script>
@@ -228,8 +298,7 @@
   const WEEKLY_BUDGET = 28;
   let currentRefPts = 0;
 
-   const FOOD_DATABASE = [
-  // ALCOOLS
+  const FOOD_DATABASE = [
     { cat: "Alcools", name: "Vin rouge / blanc / rosé sec", portion: "1 verre de table (125 ml)", pts: 3 },
     { cat: "Alcools", name: "Champagne / Crémant", portion: "1 coupe (100 ml)", pts: 3 },
     { cat: "Alcools", name: "Alcool fort (Pastis, Vodka, Whisky 40%)", portion: "1 dose bar (40 ml)", pts: 3 },
@@ -237,379 +306,149 @@
     { cat: "Alcools", name: "Vin blanc moelleux / cuit", portion: "1 verre (100 ml)", pts: 4 },
     { cat: "Alcools", name: "Bière spéciale / forte", portion: "1 bouteille (330 ml)", pts: 7 },
 
-    // CLAPIOTES APERO
-    { cat: "Clapiotes Apero", name: "Olives", portion: "5 unités", pts: 1 },
-    { cat: "Clapiotes Apero", name: "Pretzels / Biscuits salés secs", portion: "1 poignée (25 g)", pts: 3 },
-    { cat: "Clapiotes Apero", name: "Chips de pommes de terre classiques", portion: "1 petite poignée (25 g)", pts: 4 },
-    { cat: "Clapiotes Apero", name: "Biscuits apéritifs soufflés (type Curly)", portion: "1 poignée (25 g)", pts: 4 },
-    { cat: "Clapiotes Apero", name: "Cacahuètes grillées salées", portion: "10 unités", pts: 1 },
-    { cat: "Clapiotes Apero", name: "Gressins Nature", portion: "3 unités", pts: 2 },
-    { cat: "Clapiotes Apero", name: "Pistaches natures, decortiquées", portion: "15 unités", pts: 1 },
-
-    // BOISSONS (SANS ALCOOL)
-    { cat: "Boissons (Sans Alcool)", name: "Soda Light / Zéro", portion: "1 canette / 1 verre", pts: 0 },
-    { cat: "Boissons (Sans Alcool)", name: "Sirop de fruits classique avec eau", portion: "1 cuillère à soupe (20 ml)", pts: 3 },
-    { cat: "Boissons (Sans Alcool)", name: "Jus de fruits pur jus (Orange, Pomme)", portion: "1 verre (200 ml)", pts: 4 },
-    { cat: "Boissons (Sans Alcool)", name: "Soda classique (Coca, Fanta...)", portion: "1 canette (330 ml)", pts: 7 },
-
-    // CHARCUTERIE
-    { cat: "Charcuterie", name: "Jambon de Paris / blanc (dégraissé)", portion: "1 tranche (50 g)", pts: 0 },
-    { cat: "Charcuterie", name: "Jambon cru / de Pays (dégraissé)", portion: "1 tranche (30 g)", pts: 1 },
-    { cat: "Charcuterie", name: "Saucisson sec", portion: "4 fines rondelles (20 g)", pts: 3 },
-    { cat: "Charcuterie", name: "Chorizo", portion: "4 rondelles (20 g)", pts: 3 },
-    { cat: "Charcuterie", name: "Rillettes de porc", portion: "1 cuillère à soupe (30 g)", pts: 4 },
-    { cat: "Charcuterie", name: "Mousse de canard / foie de volaille", portion: "1 portion (30 g)", pts: 4 },
     { cat: "Charcuterie", name: "Paté de campagne", portion: "30 g", pts: 3 },
+    { cat: "Charcuterie", name: "Jambon blanc / cuit supérieur", portion: "1 tranche (45 g)", pts: 1 },
+    { cat: "Charcuterie", name: "Jambon cru", portion: "1 tranche (30 g)", pts: 2 },
+    { cat: "Charcuterie", name: "Saucisson sec", portion: "3 tranches (20 g)", pts: 3 },
+    { cat: "Charcuterie", name: "Rillettes de porc", portion: "1 c.à.s (30 g)", pts: 4 },
 
-    // CONDIMENTS & SAUCES
     { cat: "Condiment", name: "Moutarde", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "Ketchup", portion: "1 cuillère à soupe (20 g)", pts: 1 },
-    { cat: "Condiment", name: "Mayonnaise industrielle", portion: "1 cuillère à soupe (20 g)", pts: 3 },
-    { cat: "Condiment", name: "jus de citron", portion: "à volonté", pts: 0 },
+    { cat: "Condiment", name: "Ketchup", portion: "1 c.à.s (20 g)", pts: 1 },
+    { cat: "Condiment", name: "Mayonnaise industrielle", portion: "1 c.à.s (20 g)", pts: 3 },
     { cat: "Condiment", name: "Vinaigre", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "Ail", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "Oignons", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "Echalote", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "Gingembre", portion: "à volonté", pts: 0 },
     { cat: "Condiment", name: "Sauce soja salée", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "bouillon cube dégraissé", portion: "à volonté", pts: 0 },
-    { cat: "Condiment", name: "sauce soja sucrée", portion: "1 cuillère à soupe (15ml)", pts: 2 },
-    { cat: "Condiment", name: "Vinaigre balsamique", portion: "1 cuillère à soupe (15ml)", pts: 1 },
-    { cat: "Condiment", name: "Sauce teriyaki", portion: "1 cuillère à soupe (15ml)", pts: 1 },
-    { cat: "Condiment", name: "sauce bbq", portion: "1 cuillère à soupe (15ml)", pts: 1 },
-    { cat: "Condiment", name: "sauce huitre", portion: "1 cuillère à soupe (15ml)", pts: 1 },
-    { cat: "Condiment", name: "sauce pesto", portion: "1 cuillère à soupe (15ml)", pts: 2 },
-    { cat: "Condiment", name: "tapenade", portion: "1 cuillère à soupe (15ml)", pts: 1 },
-    { cat: "Condiment", name: "Marinade huile d'olive + herbes", portion: "1 c. à café d'huile", pts: 1 },
+    { cat: "Condiment", name: "Sauce soja sucrée", portion: "1 c.à.s (15 ml)", pts: 2 },
 
-    // CRÈMES & LAITS
-    { cat: "Crèmes & Laits", name: "Crème fraîche légère (15% MG)", portion: "1 cuillère à soupe (15 g)", pts: 1 },
-    { cat: "Crèmes & Laits", name: "Crème fraîche liquide (4% à 5% MG)", portion: "2 cuilleres à soupe (30 g)", pts: 1 },
+    { cat: "Crèmes & Laits", name: "Crème fraîche légère (15% MG)", portion: "1 c.à.s (15 g)", pts: 1 },
     { cat: "Crèmes & Laits", name: "Lait demi-écrémé", portion: "1 verre (100 ml)", pts: 1 },
-    { cat: "Crèmes & Laits", name: "Crème fraîche entière (30% MG)", portion: "1 cuillère à soupe (15 g)", pts: 2 },
-    { cat: "Crèmes & Laits", name: "Lait demi-écrémé", portion: "1 grand bol (250 ml)", pts: 3 },
     { cat: "Crèmes & Laits", name: "Lait entier", portion: "1 verre (100 ml)", pts: 3 },
-    { cat: "Crèmes & Laits", name: "Crème fraîche légère (15% MG)", portion: "1 brique (20 cl)", pts: 8 },
-    { cat: "Crèmes & Laits", name: "Crème fraîche entière (30% MG)", portion: "1 petit pot (200 g / 20 cl)", pts: 23 },
+    { cat: "Crèmes & Laits", name: "Crème fraîche entière (30% MG)", portion: "1 c.à.s (15 g)", pts: 2 },
 
-    // DIVERS & OLEAGINEUX
     { cat: "Divers", name: "Ajout libre", portion: "1 unité", pts: 1 },
-    { cat: "Divers", name: "Amandes nature non salées", portion: "20 g", pts: 4 },
-    { cat: "Divers", name: "Noix nature", portion: "20 g", pts: 5 },
-    { cat: "Divers", name: "Noisettes natures", portion: "20 g", pts: 6 },
+    { cat: "Divers", name: "Amandes nature", portion: "20 g", pts: 4 },
+    { cat: "Divers", name: "Noix", portion: "20 g", pts: 5 },
 
-    // FÉCULENTS
-    { cat: "Féculents", name: "Pain de mie blanc", portion: "1 tranche standard", pts: 2 },
-    { cat: "Féculents", name: "Quinoa Cru", portion: "30 g", pts: 2 },
+    { cat: "Féculents", name: "Pain de mie blanc", portion: "1 tranche", pts: 2 },
     { cat: "Féculents", name: "Pâtes blanches (cuites)", portion: "1 portion moyenne (100 g)", pts: 3 },
-    { cat: "Féculents", name: "Baguette de pain", portion: "1/4 de baguette (50 g)", pts: 3 },
-    { cat: "Féculents", name: "Pâtes completes (cuites)", portion: "1 portion moyenne (100 g)", pts: 3 },
-    { cat: "Féculents", name: "Riz complet (cuit)", portion: "1 portion (100 g)", pts: 3 },
     { cat: "Féculents", name: "Riz blanc (cuit)", portion: "1 portion (100 g)", pts: 4 },
-    { cat: "Féculents", name: "Riz complet (cuit)", portion: "1 belle portion (150 g)", pts: 5 },
-    { cat: "Féculents", name: "Riz blanc (cuit)", portion: "1 belle portion (150 g)", pts: 6 },
-    { cat: "Féculents", name: "Pâtes blanches (cuites)", portion: "1 grande assiette (200 g)", pts: 7 },
-    { cat: "Féculents", name: "Pâtes completes (cuites)", portion: "1 grande assiette (200 g)", pts: 7 },
-    { cat: "Féculents", name: "Boulgour Cru", portion: "30 g", pts: 2 },
-    { cat: "Féculents", name: "Semoule Crue", portion: "30 g", pts: 2 },
-    { cat: "Féculents", name: "Pomme de terre (petite)", portion: "1 petite", pts: 2 },
-    { cat: "Féculents", name: "Pomme de terre (grosse)", portion: "1 grosse / 2 petites", pts: 4 },
-    { cat: "Féculents", name: "Pâtes blanches crues", portion: "10 g", pts: 1 },
-    { cat: "Féculents", name: "Riz blanc cru", portion: "10 g", pts: 1 },
-    { cat: "Féculents", name: "Pâtes completes crues", portion: "10 g", pts: 1 },
-    { cat: "Féculents", name: "Riz complet cru", portion: "10 g", pts: 1 },
-         { cat: "Féculents", name: "avoine", portion: "30 g (3 cuill à soupe)", pts: 3 },
-        
+    { cat: "Féculents", name: "Baguette de pain", portion: "1/4 baguette (50 g)", pts: 3 },
+    { cat: "Féculents", name: "Pommes de terre", portion: "1 grosse", pts: 4 },
+    { cat: "Féculents", name: "Avoine", portion: "30 g", pts: 3 },
 
-    // FROMAGES
-    { cat: "Fromage", name: "Mozzarella vache", portion: "30 g", pts: 3 },
-    { cat: "Fromage", name: "Feta", portion: "30 g", pts: 3 },
-    { cat: "Fromage", name: "Mozzarella buffala", portion: "30 g", pts: 4 },
-    { cat: "Fromage", name: "Halloumi", portion: "30 g", pts: 4 },
+    { cat: "Fromages", name: "Mozzarella", portion: "30 g", pts: 3 },
+    { cat: "Fromages", name: "Feta", portion: "30 g", pts: 3 },
+    { cat: "Fromages", name: "Halloumi", portion: "30 g", pts: 4 },
+    { cat: "Fromages", name: "Comté", portion: "30 g", pts: 4 },
 
-    // FRUITS (0 POINTS BLEU)
     { cat: "Fruits", name: "Abricot", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Airelles", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Ananas", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Anone / Chérimole", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Baies de sureau", portion: "à volonté", pts: 0 },
     { cat: "Fruits", name: "Banane", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Brugnon / Nectarine", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Canneberge fraîche", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Carambole", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Cassis", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Cerise", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Citron", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Citron vert", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Clémentine", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Coing", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Compote de fruits sans sucre ajouté", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Figue de barbarie", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Figue fraîche", portion: "à volonté", pts: 0 },
     { cat: "Fruits", name: "Fraise", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Framboise", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Fruit à pain", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Fruit de la passion", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Fruit du jacquier", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Goyave", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Grenade", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Groseilles", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Kaki", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Kiwi", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Kumquat", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Litchi", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Mandarine", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Mangoustan", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Mangue", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Maracuja", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Melon", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Mirabelle", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Mûre", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Myrtilles", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Nèfle", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Orange", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Pamplemousse", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Papaye", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Pastèque", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Pêche", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Poire", portion: "à volonté", pts: 0 },
     { cat: "Fruits", name: "Pomme", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Prune", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Raisin", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Ramboutan", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Rhubarbe", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Salade de fruits frais sans sucre ajouté", portion: "à volonté", pts: 0 },
-    { cat: "Fruits", name: "Noix de coco", portion: "1 cuillère à soupe (20 g)", pts: 2 },
+    { cat: "Fruits", name: "Poire", portion: "à volonté", pts: 0 },
+    { cat: "Fruits", name: "Orange", portion: "à volonté", pts: 0 },
+    { cat: "Fruits", name: "Kiwi", portion: "à volonté", pts: 0 },
 
-    // LÉGUMES (0 POINTS BLEU)
-    { cat: "Légumes", name: "Avocat", portion: "un demi", pts: 2 },
-    { cat: "Légumes", name: "Champignon de paris", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Artichaut", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Asperge", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Aubergine", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Betterave rouge", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Blette / Botte de blettes", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Brocoli", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Cardon", portion: "à volonté", pts: 0 },
     { cat: "Légumes", name: "Carotte", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Céleri branché", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Céleri-rave", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Champignons (toutes variétés)", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chayotte / Christophine", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chicon / Endive", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chicorée", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou blanc", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou chinois / Pak-choi", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou frisé", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou kale", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou romanesco", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou rouge", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou vert", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Choucroute nature (non cuisinée)", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou-fleur", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Chou-rave", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Choux de Bruxelles", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Citrouille", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Cœur d'artichaut", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Cœur de palmier", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Concombre", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Cornichon", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Courge butternut", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Courge spaghetti", portion: "à volonté", pts: 0 },
     { cat: "Légumes", name: "Courgette", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Cresson", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Crosne", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Échalote", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Épinard", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Fenouil", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Fond d'artichaut", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Germe de soja / Pousses de haricot mungo", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Haricots verts et beurre", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Macédoine de légumes nature", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Mini épi de maïs", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Navet", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Oignon", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Pâtisson", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Piment", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Pissenlit", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Poireau", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Pois gourmands / Pois mangetout", portion: "à volonté", pts: 0 },
+    { cat: "Légumes", name: "Tomate", portion: "à volonté", pts: 0 },
+    { cat: "Légumes", name: "Salade / Laitue", portion: "à volonté", pts: 0 },
+    { cat: "Légumes", name: "Brocoli", portion: "à volonté", pts: 0 },
     { cat: "Légumes", name: "Poivron", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Potimarron", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Potiron", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Pousse de bambou", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Pousse d'épinard", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Radis", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Ratatouille maison sans matière grasse", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Rutabaga", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Salade / Laitue (toutes variétés)", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Salicorne fraîche", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Salsifis", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Tétragone", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Tomate / Cerise / Séchée nature", portion: "à volonté", pts: 0 },
-    { cat: "Légumes", name: "Topinambour", portion: "à volonté", pts: 0 },
 
-    // LÉGUMINEUSES (0 POINTS BLEU)
-    { cat: "Légumineuses", name: "Haricots adzuki", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Germes de luzerne", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Germes de haricots", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots noirs", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots à œil noir", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots cannellini", portion: "à volonté", pts: 0 },
     { cat: "Légumineuses", name: "Pois chiches", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Edamame", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Fèves", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots blancs du nord", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Pois verts", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots rouges", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Lentilles (vertes, corail, blondes)", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots de Lima", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots Lupini", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots navy", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Pois cassés", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Haricots pinto", portion: "à volonté", pts: 0 },
-    { cat: "Légumineuses", name: "Soja", portion: "à volonté", pts: 0 },
+    { cat: "Légumineuses", name: "Haricots blancs", portion: "à volonté", pts: 0 },
+    { cat: "Légumineuses", name: "Lentilles", portion: "à volonté", pts: 0 },
 
-    // ŒUFS & PRODUITS LAITIERS 0% (0 POINTS BLEU)
     { cat: "Œufs & Produits Laitiers", name: "Œuf entier", portion: "à volonté", pts: 0 },
     { cat: "Œufs & Produits Laitiers", name: "Blanc d'œuf", portion: "à volonté", pts: 0 },
-    { cat: "Œufs & Produits Laitiers", name: "Jaune d'œuf", portion: "à volonté", pts: 0 },
-    { cat: "Œufs & Produits Laitiers", name: "Fromage blanc nature 0%", portion: "à volonté", pts: 0 },
-    { cat: "Œufs & Produits Laitiers", name: "Yaourt grec nature 0%", portion: "à volonté", pts: 0 },
-    { cat: "Œufs & Produits Laitiers", name: "Yaourt nature 0%", portion: "à volonté", pts: 0 },
-    { cat: "Œufs & Produits Laitiers", name: "Skyr nature 0%", portion: "à volonté", pts: 0 },
+    { cat: "Œufs & Produits Laitiers", name: "Yaourt nature 0%", portion: "1 pot (125 g)", pts: 0 },
+    { cat: "Œufs & Produits Laitiers", name: "Fromage blanc 0%", portion: "100 g", pts: 0 },
 
-    // POISSONS & FRUITS DE MER (0 POINTS BLEU)
-    { cat: "Poissons & Fruits de mer", name: "Anchois au naturel", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Bar de mer / Branzino", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Cabillaud / Morue fraîche", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Colin / Lieu", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Dorade", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Églefin", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Flétan", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Hareng frais", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Maquereau frais", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Merlan", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Mérou", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Plie / Carrelet", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Saumon frais / fumé", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Sardines fraîches ou boîte au naturel", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Sole", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Thon frais ou au naturel en boîte", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Truite d'eau douce", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Turbot", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Crevettes / Gambas / Écrevisses", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Crabe / Chair de crabe", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Homard / Langouste", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Moules / Huîtres / Palourdes", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Coquilles Saint-Jacques", portion: "à volonté", pts: 0 },
-    { cat: "Poissons & Fruits de mer", name: "Calmar / Poulpe / Seiche", portion: "à volonté", pts: 0 },
+    { cat: "Poissons & Fruits de mer", name: "Saumon frais", portion: "à volonté", pts: 0 },
+    { cat: "Poissons & Fruits de mer", name: "Cabillaud", portion: "à volonté", pts: 0 },
+    { cat: "Poissons & Fruits de mer", name: "Thon en boîte au naturel", portion: "à volonté", pts: 0 },
+    { cat: "Poissons & Fruits de mer", name: "Crevettes", portion: "à volonté", pts: 0 },
 
-    // VOLAILLES & VIANDES MAIGRES (0 POINTS BLEU)
-    { cat: "Volailles & Viandes", name: "Poitrine / Blanc de poulet sans peau", portion: "à volonté", pts: 0 },
-    { cat: "Volailles & Viandes", name: "Poitrine / Blanc de dinde sans peau", portion: "à volonté", pts: 0 },
-    { cat: "Volailles & Viandes", name: "Poulet haché (90% maigre ou plus)", portion: "à volonté", pts: 0 },
-    { cat: "Volailles & Viandes", name: "Dinde hachée (90% maigre ou plus)", portion: "à volonté", pts: 0 },
-    { cat: "Volailles & Viandes", name: "Foie de poulet / dinde", portion: "à volonté", pts: 0 },
-     {"cat": "Volailles & Viandes", "name": "Aiguillette de canard", "portion": "100 g", "pts": 2},
-  {"cat": "Volailles & Viandes", "name": "Cuisse de poulet avec peau", "portion": "1 cuisse (120 g)", "pts": 6},
-  {"cat": "Volailles & Viandes", "name": "Cuisse de poulet sans peau", "portion": "1 cuisse (100 g)", "pts": 4},
-  {"cat": "Volailles & Viandes", "name": "Haut de cuisse de poulet avec peau", "portion": "1 pièce (80 g)", "pts": 4},
-  {"cat": "Volailles & Viandes", "name": "Haut de cuisse de poulet sans peau", "portion": "1 pièce (70 g)", "pts": 2},
-  {"cat": "Volailles & Viandes", "name": "Pilon de poulet avec peau", "portion": "1 pilon (50 g)", "pts": 2},
-  {"cat": "Volailles & Viandes", "name": "Pilon de poulet sans peau", "portion": "1 pilon (45 g)", "pts": 1},
-  {"cat": "Volailles & Viandes", "name": "Aile de poulet avec peau", "portion": "1 aile (30 g)", "pts": 2},
-  {"cat": "Volailles & Viandes", "name": "Magret de canard sans peau", "portion": "100 g", "pts": 4},
-  {"cat": "Volailles & Viandes", "name": "Magret de canard avec peau", "portion": "100 g", "pts": 8},
-  {"cat": "Volailles & Viandes", "name": "Cuisse de canard confite (égouttée)", "portion": "1 cuisse (110 g)", "pts": 9},
-  {"cat": "Volailles & Viandes", "name": "Cuisse de dinde avec peau", "portion": "100 g", "pts": 5},
-  {"cat": "Volailles & Viandes", "name": "Cuisse de dinde sans peau", "portion": "100 g", "pts": 3},
-  {"cat": "Volailles & Viandes", "name": "Rôti de dinde / poulet", "portion": "1 tranche (50 g)", "pts": 1},
-    { cat: "Volailles & Viandes", name: "Merguez (porc/bœuf/agneau)", portion: "1 pièce (70 g)", pts: 6 },
-    { cat: "Volailles & Viandes", name: "Merguez de volaille", portion: "1 pièce (50 g)", pts: 3 },
-    { cat: "Volailles & Viandes", name: "Chipolata classique", portion: "1 pièce (60 g)", pts: 6 },
-    { cat: "Volailles & Viandes", name: "Chipolata de volaille", portion: "1 pièce (60 g)", pts: 3 },
-    { cat: "Volailles & Viandes", name: "Saucisse de Toulouse", portion: "1 morceau (70 g)", pts: 7 },
+    { cat: "Volailles & Viandes", name: "Poitrine de poulet sans peau", portion: "à volonté", pts: 0 },
+    { cat: "Volailles & Viandes", name: "Dinde hachée 90% maigre", portion: "à volonté", pts: 0 },
     { cat: "Volailles & Viandes", name: "Steak haché 5% MG", portion: "1 pièce (125 g)", pts: 3 },
-    { cat: "Volailles & Viandes", name: "Steak haché 15% MG", portion: "1 pièce (125 g)", pts: 7 },
-    { cat: "Volailles & Viandes", name: "Bavette ou Faux-filet paré", portion: "1 pièce (120 g)", pts: 3 },
-    { cat: "Volailles & Viandes", name: "Côte de porc avec gras", portion: "1 pièce (120 g)", pts: 7 },
-    { cat: "Volailles & Viandes", name: "Travers de porc / Ribs", portion: "1 portion (150 g)", pts: 10 }
+    { cat: "Volailles & Viandes", name: "Cuisse de poulet avec peau", portion: "1 cuisse (120 g)", pts: 6 },
+    { cat: "Volailles & Viandes", name: "Merguez", portion: "1 pièce (70 g)", pts: 6 },
+    { cat: "Volailles & Viandes", name: "Bavette", portion: "1 pièce (120 g)", pts: 3 }
   ];
 
   const SPORT_DATABASE = [
-   { name: "Aérobic", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Aquagym", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Badminton", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Basket-ball", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Beach-Volley", intensity: "Élevée", refDur: 15, pts: 3 },
-    { name: "Bêchage / Jardinage", intensity: "Modérée", refDur: 15, pts: 1 },
-    { name: "Vélo (promenade / rythme modéré)", intensity: "Faible", refDur: 15, pts: 1 },
-    { name: "Bowling", intensity: "Faible", refDur: 15, pts: 1 },
-    { name: "Course à pied (8 km/h)", intensity: "Élevée", refDur: 30, pts: 5 },
-    { name: "Course à pied (10 km/h et plus)", intensity: "Très élevée", refDur: 30, pts: 7 },
-    { name: "Danse / Danse Disco / Salsa", intensity: "Modérée", refDur: 15, pts: 2 },
-    { name: "Équitation", intensity: "Faible", refDur: 15, pts: 1 },
-    { name: "Escalade", intensity: "Élevée", refDur: 30, pts: 5 },
-    { name: "Escaliers (montée / descente)", intensity: "Élevée", refDur: 30, pts: 5 },
-    { name: "Football", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Frisbee", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Golf (en marchant)", intensity: "Faible", refDur: 15, pts: 1 },
-    { name: "Gymnastique suédoise / Fitness", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Jardinage doux / Ménage dynamique", intensity: "Faible", refDur: 15, pts: 1 },
-    { name: "Marche lente / douce", intensity: "Faible", refDur: 30, pts: 1 },
-    { name: "Marche rapide (5 km/h)", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Marche active / nordique (avec bâtons)", intensity: "Élevée", refDur: 30, pts: 5 },
+    { name: "Marche lente", intensity: "Faible", refDur: 30, pts: 1 },
+    { name: "Marche rapide", intensity: "Modérée", refDur: 30, pts: 3 },
+    { name: "Vélo (promenade)", intensity: "Faible", refDur: 15, pts: 1 },
+    { name: "Course à pied", intensity: "Élevée", refDur: 30, pts: 5 },
     { name: "Natation", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Parcours santé", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Patin à glace / Patin à roulettes", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Planche à voile / Surf", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Plongée sous-marine", intensity: "Très élevée", refDur: 30, pts: 7 },
-    { name: "Rameur / Aviron", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Randonnée pédestre", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Rugby", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Saut à la corde", intensity: "Très élevée", refDur: 15, pts: 3 },
-    { name: "Skate-board", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Ski alpin ou ski de fond", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Ski nautique / Snowboard", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Squash", intensity: "Très élevée", refDur: 15, pts: 3 },
-    { name: "Step", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "Tai-chi / Voile", intensity: "Faible", refDur: 30, pts: 1 },
-    { name: "Tennis / Tennis de table", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Tir à l'arc", intensity: "Faible", refDur: 30, pts: 1 },
-    { name: "Vélo elliptique", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Volley-ball", intensity: "Élevée", refDur: 15, pts: 2 },
-    { name: "VTT / Cross-country", intensity: "Modérée", refDur: 30, pts: 3 },
-    { name: "Yoga", intensity: "Faible", refDur: 15, pts: 1 }
+    { name: "Escalade", intensity: "Élevée", refDur: 30, pts: 5 },
+    { name: "Fitness / Gym", intensity: "Modérée", refDur: 30, pts: 3 },
+    { name: "Yoga", intensity: "Faible", refDur: 15, pts: 1 },
+    { name: "Aérobic", intensity: "Modérée", refDur: 30, pts: 3 },
+    { name: "Basket-ball", intensity: "Élevée", refDur: 15, pts: 2 },
+    { name: "Football", intensity: "Élevée", refDur: 15, pts: 2 },
+    { name: "Tennis", intensity: "Modérée", refDur: 30, pts: 3 }
   ];
 
+  // Map simple pour scanner de code-barres
+  // Exemple : clé => nom d'aliment
+  const BARCODE_DB = {
+    "0000000000000": "Pomme",
+    "1234567890128": "Yaourt nature 0%",
+    "5449000000996": "Coca-Cola",
+    "7622210778629": "Barre chocolatée"
+  };
 
-  function getCustomFoods() { return JSON.parse(localStorage.getItem('ww_custom_foods') || '[]'); }
+  function getCustomFoods() {
+    try {
+      return JSON.parse(localStorage.getItem('ww_custom_foods') || '[]');
+    } catch {
+      return [];
+    }
+  }
 
   function populateCategoryDropdown() {
     const catSelect = document.getElementById('calc-cat');
-    catSelect.innerHTML = '<option value="Mes Créations">⭐ Mes Créations</option>';
+    if (!catSelect) return;
+
     const categories = Array.from(new Set(FOOD_DATABASE.map(f => f.cat))).sort();
-    categories.forEach(cat => catSelect.innerHTML += `<option value="${cat}">${cat}</option>`);
+    catSelect.innerHTML = '<option value="Mes Créations">⭐ Mes Créations</option>';
+    categories.forEach(cat => {
+      catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
   }
 
   function initDatalists() {
     const foodList = document.getElementById('food-db');
-    foodList.innerHTML = '';
-    FOOD_DATABASE.forEach(item => foodList.innerHTML += `<option value="${item.name}">${item.cat} - ${item.portion} (${item.pts} SP)</option>`);
-    getCustomFoods().forEach(item => foodList.innerHTML += `<option value="${item.name}">⭐ ${item.cat} - ${item.portion} (${item.pts} SP)</option>`);
-
     const sportList = document.getElementById('sport-db');
-    sportList.innerHTML = '';
-    SPORT_DATABASE.forEach(item => sportList.innerHTML += `<option value="${item.name}">${item.intensity} - ${item.refDur} min (${item.pts} Pts)</option>`);
+
+    if (foodList) {
+      foodList.innerHTML = '';
+      FOOD_DATABASE.forEach(item => {
+        foodList.innerHTML += `<option value="${item.name}">${item.cat} - ${item.portion} (${item.pts} SP)</option>`;
+      });
+      getCustomFoods().forEach(item => {
+        foodList.innerHTML += `<option value="${item.name}">⭐ ${item.cat} - ${item.portion} (${item.pts} SP)</option>`;
+      });
+    }
+
+    if (sportList) {
+      sportList.innerHTML = '';
+      SPORT_DATABASE.forEach(item => {
+        sportList.innerHTML += `<option value="${item.name}">${item.intensity} - ${item.refDur} min (${item.pts} Pts)</option>`;
+      });
+    }
 
     populateCategoryDropdown();
   }
 
   function onFoodSelect() {
-    const val = document.getElementById('food-search').value;
+    const val = document.getElementById('food-search').value.trim();
     const allFoods = [...FOOD_DATABASE, ...getCustomFoods()];
     const item = allFoods.find(f => f.name.toLowerCase() === val.toLowerCase());
+
     if (item) {
       currentRefPts = item.pts;
       document.getElementById('food-qty').value = 1;
@@ -624,28 +463,27 @@
   }
 
   function onSportSelect() {
-    const val = document.getElementById('sport-search').value;
+    const val = document.getElementById('sport-search').value.trim();
     const item = SPORT_DATABASE.find(s => s.name.toLowerCase() === val.toLowerCase());
-    if (item) document.getElementById('sport-duration').value = item.refDur;
+    if (item) {
+      document.getElementById('sport-duration').value = item.refDur;
+    }
   }
 
-function calculateWWPoints() {
+  function calculateWWPoints() {
     const name = document.getElementById('calc-name').value || "Aliment calculé (100g)";
     const cal = parseFloat(document.getElementById('calc-cal').value) || 0;
     const sat = parseFloat(document.getElementById('calc-sat').value) || 0;
     const sug = parseFloat(document.getElementById('calc-sug').value) || 0;
     const pro = parseFloat(document.getElementById('calc-pro').value) || 0;
 
-    let pts = Math.max(0, Math.round((cal / 33) + (sat * 0.36) + (sug / 4) - (pro / 11)));
-    
-    // Remplit la section de recherche en haut
+    const pts = Math.max(0, Math.round((cal / 33) + (sat * 0.36) + (sug / 4) - (pro / 11)));
+
     document.getElementById('food-search').value = name;
     currentRefPts = pts;
     document.getElementById('food-qty').value = 1;
     document.getElementById('food-pts').value = pts;
     document.getElementById('food-portion-info').innerText = `Résultat formule : ${pts} SP pour 100g`;
-
-    // Affiche le résultat directement sous les boutons du calculateur
     document.getElementById('calc-result-display').innerText = `Résultat : ${pts} SmartPoint(s) pour 100g`;
 
     return pts;
@@ -675,18 +513,28 @@ function calculateWWPoints() {
     try {
       const newItems = JSON.parse(rawText);
       if (!Array.isArray(newItems)) return alert("Format invalide.");
+
       const customFoods = getCustomFoods();
       let added = 0;
+
       newItems.forEach(item => {
         if (item.name && item.pts !== undefined) {
           const name = item.name.trim();
           const existingIndex = customFoods.findIndex(f => f.name.toLowerCase() === name.toLowerCase());
-          const foodObj = { cat: item.cat || "Importé", name, portion: item.portion || "100g", pts: parseFloat(item.pts) || 0 };
+          const foodObj = {
+            cat: item.cat || "Importé",
+            name,
+            portion: item.portion || "100g",
+            pts: parseFloat(item.pts) || 0
+          };
+
           if (existingIndex !== -1) customFoods[existingIndex] = foodObj;
           else customFoods.push(foodObj);
+
           added++;
         }
       });
+
       localStorage.setItem('ww_custom_foods', JSON.stringify(customFoods));
       initDatalists();
       document.getElementById('bulk-input').value = '';
@@ -703,22 +551,44 @@ function calculateWWPoints() {
     alert("Données exportées dans le champ texte !");
   }
 
-  function getTodayKey() { return new Date().toISOString().split('T')[0]; }
-  function loadData() { return JSON.parse(localStorage.getItem('ww_data') || '{}'); }
-  function saveData(data) { localStorage.setItem('ww_data', JSON.stringify(data)); updateUI(); }
+  function getTodayKey() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function loadData() {
+    try {
+      return JSON.parse(localStorage.getItem('ww_data') || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  function saveData(data) {
+    localStorage.setItem('ww_data', JSON.stringify(data));
+    updateUI();
+  }
 
   function addEntry(type) {
     const today = getTodayKey();
     const data = loadData();
+
     if (!data[today]) data[today] = { entries: [], sportPts: 0 };
 
     if (type === 'food') {
       let name = document.getElementById('food-search').value || 'Aliment';
       const qty = parseFloat(document.getElementById('food-qty').value) || 1;
       const pts = parseFloat(document.getElementById('food-pts').value) || 0;
+
       if (qty !== 1) name += ` (x${qty})`;
 
-      data[today].entries.push({ id: Date.now(), type: 'food', name, pts, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+      data[today].entries.push({
+        id: Date.now(),
+        type: 'food',
+        name,
+        pts,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
       document.getElementById('food-search').value = '';
       document.getElementById('food-qty').value = 1;
       document.getElementById('food-pts').value = '';
@@ -728,10 +598,22 @@ function calculateWWPoints() {
       const name = document.getElementById('sport-search').value || 'Activité';
       const duration = parseFloat(document.getElementById('sport-duration').value) || 0;
       const matchedSport = SPORT_DATABASE.find(s => s.name.toLowerCase() === name.toLowerCase());
-      let pts = matchedSport ? Math.round((duration / matchedSport.refDur) * matchedSport.pts * 10) / 10 : Math.round((duration / 15) * 1.5 * 10) / 10;
 
-      data[today].entries.push({ id: Date.now(), type: 'sport', name, duration, pts, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+      let pts = matchedSport
+        ? Math.round((duration / matchedSport.refDur) * matchedSport.pts * 10) / 10
+        : Math.round((duration / 15) * 1.5 * 10) / 10;
+
+      data[today].entries.push({
+        id: Date.now(),
+        type: 'sport',
+        name,
+        duration,
+        pts,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
       data[today].sportPts += pts;
+
       document.getElementById('sport-search').value = '';
       document.getElementById('sport-duration').value = '';
     }
@@ -741,15 +623,18 @@ function calculateWWPoints() {
 
   function deleteEntry(dateKey, entryId) {
     const data = loadData();
-    if (data[dateKey]) {
-      const entryIndex = data[dateKey].entries.findIndex(e => e.id === entryId);
-      if (entryIndex !== -1) {
-        const entry = data[dateKey].entries[entryIndex];
-        if (entry.type === 'sport') data[dateKey].sportPts = Math.max(0, data[dateKey].sportPts - entry.pts);
-        data[dateKey].entries.splice(entryIndex, 1);
-        saveData(data);
-      }
+    if (!data[dateKey]) return;
+
+    const entryIndex = data[dateKey].entries.findIndex(e => e.id === entryId);
+    if (entryIndex === -1) return;
+
+    const entry = data[dateKey].entries[entryIndex];
+    if (entry.type === 'sport') {
+      data[dateKey].sportPts = Math.max(0, data[dateKey].sportPts - entry.pts);
     }
+
+    data[dateKey].entries.splice(entryIndex, 1);
+    saveData(data);
   }
 
   function updateUI() {
@@ -758,7 +643,9 @@ function calculateWWPoints() {
     const dayData = data[today] || { entries: [], sportPts: 0 };
 
     let foodPtsUsed = 0;
-    dayData.entries.filter(e => e.type === 'food').forEach(e => foodPtsUsed += e.pts);
+    dayData.entries.filter(e => e.type === 'food').forEach(e => {
+      foodPtsUsed += e.pts;
+    });
 
     let dailyLeft = DAILY_BUDGET - foodPtsUsed;
     let weeklyLeft = WEEKLY_BUDGET + dayData.sportPts;
@@ -768,69 +655,168 @@ function calculateWWPoints() {
       dailyLeft = 0;
     }
 
-    document.getElementById('disp-daily-left').innerText = Math.round(dailyLeft * 10) / 10;
-    document.getElementById('disp-weekly-left').innerText = Math.max(0, Math.round(weeklyLeft * 10) / 10);
-    document.getElementById('disp-sport-pts').innerText = dayData.sportPts;
+    const dailyLeftEl = document.getElementById('disp-daily-left');
+    const weeklyLeftEl = document.getElementById('disp-weekly-left');
+    const sportPtsEl = document.getElementById('disp-sport-pts');
+
+    if (dailyLeftEl) dailyLeftEl.innerText = String(Math.round(dailyLeft * 10) / 10);
+    if (weeklyLeftEl) weeklyLeftEl.innerText = String(Math.max(0, Math.round(weeklyLeft * 10) / 10));
+    if (sportPtsEl) sportPtsEl.innerText = String(dayData.sportPts);
 
     const logList = document.getElementById('today-log-list');
-    logList.innerHTML = dayData.entries.length === 0 ? '<p style="color:#aaa;">Rien de saisi aujourd\'hui</p>' : '';
-    dayData.entries.forEach(e => {
-      logList.innerHTML += `
-        <div class="log-item">
-          <div>
-            <strong>${e.name}</strong> <small>(${e.time})</small>
+    if (logList) {
+      logList.innerHTML = dayData.entries.length === 0
+        ? '<p style="color:#aaa;">Rien de saisi aujourd\'hui</p>'
+        : '';
+
+      dayData.entries.forEach(e => {
+        logList.innerHTML += `
+          <div class="log-item">
+            <div>
+              <strong>${e.name}</strong> <small>(${e.time})</small>
+            </div>
+            <div style="display:flex; align-items:center;">
+              <span class="badge ${e.type === 'food' ? 'badge-food' : 'badge-sport'}">
+                ${e.type === 'food' ? '-' + e.pts + ' SP' : '+' + e.pts + ' Pts Sport'}
+              </span>
+              <button class="btn-del" onclick="deleteEntry('${today}', ${e.id})">🗑️</button>
+            </div>
           </div>
-          <div>
-            <span class="badge ${e.type === 'food' ? 'badge-food' : 'badge-sport'}">
-              ${e.type === 'food' ? '-' + e.pts + ' SP' : '+' + e.pts + ' Pts Sport'}
-            </span>
-            <button class="btn-del" onclick="deleteEntry('${today}', ${e.id})">🗑️</button>
-          </div>
-        </div>`;
-    });
+        `;
+      });
+    }
 
     const historyList = document.getElementById('history-list');
-    historyList.innerHTML = '';
-    Object.keys(data).sort().reverse().forEach(date => {
-      let dayTotalFood = 0;
-      data[date].entries.filter(e => e.type === 'food').forEach(e => dayTotalFood += e.pts);
-      let detailsHtml = data[date].entries.map(e => `
-        <div style="font-size:0.85rem; color:#555; margin-top:4px;">
-          • ${e.name} (${e.type === 'food' ? e.pts + ' SP' : '+' + e.pts + ' Pts Sport'})
-        </div>
-      `).join('');
+    if (historyList) {
+      historyList.innerHTML = '';
 
-      historyList.innerHTML += `
-        <div class="history-card">
-          <div class="flex-between">
-            <strong>📅 ${date}</strong>
-            <small>${Math.round(dayTotalFood * 10) / 10} SP | +${data[date].sportPts} Pts Sport</small>
+      Object.keys(data).sort().reverse().forEach(date => {
+        let dayTotalFood = 0;
+        data[date].entries.forEach(e => {
+          if (e.type === 'food') dayTotalFood += e.pts;
+        });
+
+        const detailsHtml = data[date].entries.map(e => `
+          <div style="font-size:0.85rem; color:#555; margin-top:4px;">
+            • ${e.name} (${e.type === 'food' ? e.pts + ' SP' : '+' + e.pts + ' Pts Sport'})
           </div>
-          ${detailsHtml}
-        </div>`;
-    });
+        `).join('');
+
+        historyList.innerHTML += `
+          <div class="history-card">
+            <div class="flex-between">
+              <strong>📅 ${date}</strong>
+              <small>${Math.round(dayTotalFood * 10) / 10} SP | +${data[date].sportPts} Pts Sport</small>
+            </div>
+            ${detailsHtml}
+          </div>`;
+      });
+    }
   }
 
-  function switchTab(tab) {
+  function switchTab(tab, evt) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    event.target.classList.add('active');
+
+    const target = document.getElementById('tab-' + tab);
+    if (target) target.classList.add('active');
+
+    if (evt && evt.currentTarget) {
+      evt.currentTarget.classList.add('active');
+    }
   }
 
-  // Activation du Service Worker pour le mode Hors-ligne / Zone Blanche
-  if ('serviceWorker' in navigator) {
-    const swCode = `
-      self.addEventListener('install', e => e.waitUntil(caches.open('ww-pwa-v1').then(c => c.addAll(['./']))));
-      self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
-    `;
-    const blob = new Blob([swCode], { type: 'text/javascript' });
-    const swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).catch(err => console.log('SW Offline non requis si local', err));
+  // ====== Scanner de code-barres ======
+  let scannerStream = null;
+  let scannerTimer = null;
+
+  function openScanner() {
+    const container = document.getElementById('scanner-container');
+    const video = document.getElementById('scanner-video');
+    if (!container || !video) return;
+
+    container.classList.add('visible');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Votre navigateur ne supporte pas l'accès caméra.");
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        scannerStream = stream;
+        video.srcObject = stream;
+        video.play();
+
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+          });
+
+          scannerTimer = setInterval(async () => {
+            try {
+              const barcodes = await barcodeDetector.detect(video);
+              if (barcodes && barcodes.length > 0) {
+                const code = barcodes[0].rawValue;
+                if (code) {
+                  document.getElementById('food-search').value = code;
+                  closeScanner();
+
+                  const found = Object.keys(BARCODE_DB).find(key => key === code);
+                  if (found) {
+                    const name = BARCODE_DB[found];
+                    document.getElementById('food-search').value = name;
+                    const item = FOOD_DATABASE.find(f => f.name.toLowerCase() === name.toLowerCase());
+                    if (item) {
+                      currentRefPts = item.pts;
+                      document.getElementById('food-qty').value = 1;
+                      document.getElementById('food-portion-info').innerText = `Portion réf : ${item.portion} (${item.pts} SP)`;
+                      updateCalculatedFoodPts();
+                    }
+                  } else {
+                    document.getElementById('food-portion-info').innerText = `Code lu : ${code} - ajoute-le manuellement ou enregistre-le.`;
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn("Scanner detection error:", err);
+            }
+          }, 500);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Accès caméra refusé ou indisponible.");
+      });
   }
 
-  initDatalists();
-  updateUI();
+  function closeScanner() {
+    const container = document.getElementById('scanner-container');
+    const video = document.getElementById('scanner-video');
+
+    if (scannerTimer) clearInterval(scannerTimer);
+
+    if (scannerStream) {
+      scannerStream.getTracks().forEach(track => track.stop());
+      scannerStream = null;
+    }
+
+    if (video) {
+      video.srcObject = null;
+    }
+
+    if (container) {
+      container.classList.remove('visible');
+    }
+  }
+
+  document.getElementById('btn-scan')?.addEventListener('click', openScanner);
+  document.getElementById('btn-close-scanner')?.addEventListener('click', closeScanner);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initDatalists();
+    updateUI();
+  });
 </script>
 </body>
 </html>
